@@ -1,0 +1,10 @@
+[package]
+name = "brainfuck_compilers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interpreter"
+path = "src/interpreter.rs"
+
+[dependencies]
