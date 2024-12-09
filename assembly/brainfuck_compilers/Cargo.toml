@@ -1,10 +1,11 @@
 [package]
 name = "brainfuck_compilers"
 version = "0.1.0"
+authors = ["codetit4n <hello@lokeshkr.com>"]
 edition = "2021"
 
 [[bin]]
-name = "interpreter"
+name = "bf_interpreter"
 path = "src/interpreter.rs"
 
 [dependencies]

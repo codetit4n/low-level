@@ -53,15 +53,26 @@ pub enum InstKind {
     },
 }
 
+impl InstKind {
+    fn set_jmp_idx(&mut self, jmp_idx: usize) {
+        match self {
+            InstKind::LoopStart { end_idx } => *end_idx = jmp_idx,
+            InstKind::LoopEnd { start_idx } => *start_idx = jmp_idx,
+            _ => panic!("trying to set jmp_idx {} on {:?}", jmp_idx, self),
+        }
+    }
+}
+
 /// This struct represents a single Brainfuck instruction after being parsed.
-struct Inst {
+#[derive(Debug, Eq, PartialEq)]
+pub struct Inst {
     /// This is the index of the instruction in the parsed list of instructions.
-    idx: usize,
+    pub idx: usize,
     /// Describes the type of instruction.
-    kind: InstKind,
+    pub kind: InstKind,
     /// Represents how many times this instruction should be executed in a row.
     /// For instance, ++++ becomes a single instruction with kind: InstKind::IncByte and times: 4.
-    times: usize,
+    pub times: usize,
 }
 
 impl Inst {
@@ -113,7 +124,101 @@ impl fmt::Display for Error {
     }
 }
 
-pub fn parse(std: &str) -> Result<Vec<Inst>, Error> {
-    let mut loop_dept: usize = 0;
+pub fn parse(src: &str) -> Result<Vec<Inst>, Error> {
+    let mut loop_depth: usize = 0;
     let mut insts: Vec<Inst> = Vec::new();
+
+    // 1st pass, convert chars to instructions
+    for c in src.chars().filter(|c| INSTS.contains(c)) {
+        if c == LOOP_END {
+            if loop_depth == 0 {
+                return Err(Error::UnbalancedBrackets);
+            }
+            loop_depth -= 1;
+        } else if c == LOOP_START {
+            loop_depth += 1;
+        }
+
+        let curr_inst = Inst::new(insts.len(), c);
+        if let Some(prev_inst) = insts.last_mut() {
+            if prev_inst.kind == curr_inst.kind {
+                prev_inst.increment();
+            } else {
+                insts.push(curr_inst);
+            }
+        } else {
+            insts.push(curr_inst);
+        }
+    }
+
+    if loop_depth > 0 {
+        return Err(Error::UnbalancedBrackets);
+    }
+
+    // 2nd pass, link loops together by setting their jmp idxs
+    for i in 0..insts.len() {
+        let mut update_jmp_idx: Option<usize> = None;
+        let Inst { kind, times, .. } = &insts[i];
+        match kind {
+            // found open bracket / LoopStart
+            InstKind::LoopStart { .. } => {
+                let mut loop_starts = *times;
+
+                // match outermost matching close bracket / LoopEnd
+                for j in i + 1..insts.len() {
+                    let Inst { kind, times, .. } = &insts[j];
+                    match kind {
+                        InstKind::LoopEnd { .. } => {
+                            let loop_ends = *times;
+                            loop_starts = loop_starts.saturating_sub(loop_ends);
+                            if loop_starts == 0 {
+                                update_jmp_idx = Some(j + 1);
+                                break;
+                            }
+                        }
+                        InstKind::LoopStart { .. } => {
+                            let nested_loop_starts = *times;
+                            loop_starts += nested_loop_starts;
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
+            // found close bracket / LoopEnd
+            InstKind::LoopEnd { .. } => {
+                let mut loop_ends = 1_usize;
+
+                // match innermost open bracket / LoopStart
+                for j in (0..i).rev() {
+                    let Inst { kind, times, .. } = &insts[j];
+                    match kind {
+                        InstKind::LoopStart { .. } => {
+                            let loop_starts = *times;
+                            loop_ends = loop_ends.saturating_sub(loop_starts);
+                            if loop_ends == 0 {
+                                if i == j + 1 {
+                                    return Err(Error::InfiniteLoop);
+                                }
+                                update_jmp_idx = Some(j + 1);
+                                break;
+                            }
+                        }
+                        InstKind::LoopEnd { .. } => {
+                            let nested_loop_ends = *times;
+                            loop_ends += nested_loop_ends;
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        if let Some(jmp_idx) = update_jmp_idx {
+            insts[i].kind.set_jmp_idx(jmp_idx);
+        }
+    }
+
+    Ok(insts)
 }
