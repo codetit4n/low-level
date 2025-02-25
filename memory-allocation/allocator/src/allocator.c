@@ -1,13 +1,26 @@
 #include "allocator.h"
+#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h> // For malloc, free
+#include <stdlib.h>
 
-// example allocator
+// Example allocator
+/**
+ * Allocates a block of memory of (at least) `size` bytes.
+ */
 void *ealloc(size_t size) {
-  void *ptr = malloc(size); // to be replaced with custom allocator
-  return ptr;
+  size = align(size);
+  printf("ealloc: Incomplete implementation!\n");
+  exit(1);
 }
 
 void efree(void *ptr) {
-  free(ptr); // to be replaced with custom allocator
+  printf("efree: Not implemented!\n");
+  exit(1);
+}
+
+/**
+ * Memory alignment
+ */
+inline size_t align(size_t n) {
+  return (n + sizeof(word_t) - 1) & ~(sizeof(word_t) - 1);
 }
