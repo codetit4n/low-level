@@ -4,22 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef intptr_t word_t;
-
-typedef struct MemoryBlock MemoryBlock;
-
-// Linked list for blocks of memory
-struct MemoryBlock {
-  // --------------------
-  // 1. Object header
-  size_t size;
-  bool used;
-  MemoryBlock *next;
-  // --------------------
-  // 2. User data
-  // payload pointer
-  word_t data[1];
-};
+MemoryBlock *findBlock(size_t size);
 
 // Tracking the start and end (the top) of the heap
 static MemoryBlock *heapStart = NULL;
@@ -33,7 +18,8 @@ MemoryBlock *requestFromOS(size_t size) {
   MemoryBlock *block = sbrk(0);
 
   // Out of memory
-  if (sbrk(allocSize(size)) == (void *)-1) {
+  if (sbrk(allocSize(size)) ==
+      (void *)-1) { // (void *)-1 - means invalid pointer
     return NULL;
   }
 
@@ -44,10 +30,18 @@ MemoryBlock *requestFromOS(size_t size) {
 /**
  * Allocates a block of memory of (at least) `size` bytes.
  */
-void *ealloc(size_t size) {
+word_t *ealloc(size_t size) {
   size = align(size);
 
-  MemoryBlock *block = requestFromOS(size);
+  // 1. Search for an available free block:
+  MemoryBlock *block = findBlock(size);
+  if (block) {
+    return block->data;
+  }
+
+  // 2. If block not found in the free list, request from OS:
+
+  block = requestFromOS(size);
 
   block->size = size;
   block->used = true;
@@ -67,9 +61,22 @@ void *ealloc(size_t size) {
   return block->data;
 }
 
-void efree(void *ptr) {
-  printf("efree: Not implemented!\n");
-  exit(1);
+MemoryBlock *findBlock(size_t size) {
+  MemoryBlock *block = requestFromOS(size);
+  return block;
+}
+
+/**
+ * Returns the object header
+ */
+MemoryBlock *getHeader(word_t *data) {
+  return (MemoryBlock *)(((char *)data + sizeof(((MemoryBlock *)0)->data)) -
+                         sizeof(MemoryBlock));
+}
+
+void efree(word_t *ptr) {
+  MemoryBlock *block = getHeader(ptr);
+  block->used = false;
 }
 
 /**

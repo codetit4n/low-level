@@ -14,20 +14,14 @@ set(TESTS_DIR ${CMAKE_BINARY_DIR}/tests)
 file(MAKE_DIRECTORY ${TESTS_DIR})
 
 # Define the test executable **before linking**
-add_executable(test_alloc tests/test_alloc.c)
+add_executable(test_ealloc tests/test_ealloc.c)
 
-# Now link the allocator library to test_alloc
-target_link_libraries(test_alloc PRIVATE allocator)
+# Now link the allocator library to test_ealloc
+target_link_libraries(test_ealloc PRIVATE allocator)
 
-# Move test_alloc into the tests directory
-set_target_properties(test_alloc PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTS_DIR})
+# Move test_ealloc into the tests directory
+set_target_properties(test_ealloc PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTS_DIR})
 
-# Enable testing and register test_alloc in CTest
+# Enable testing and register test_ealloc in CTest
 enable_testing()
-add_test(NAME AllocatorTest COMMAND ${TESTS_DIR}/test_alloc)
-set_tests_properties(AllocatorTest PROPERTIES
-    PASS_REGULAR_EXPRESSION "TEST PASSED"
-    FAIL_REGULAR_EXPRESSION "TEST FAILED"
-    TIMEOUT 10
-    OUTPUT_ON_FAILURE ON  # <-- Forces output to be shown in `make test`
-)
+add_test(NAME AllocatorTest COMMAND test_ealloc) # No regex needed; CTest checks exit status
