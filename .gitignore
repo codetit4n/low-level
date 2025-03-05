@@ -1,6 +1,10 @@
 # Ignore executables in the current directory
 [!.]*
 
+# but allow Makefiles
+!Makefile
+!makefile
+
 # Allow all directories and their contents
 !*/
 
@@ -15,6 +19,7 @@
 *.bin
 *.elf
 *.a
+
 
 
 # Debugging files
