@@ -6,7 +6,13 @@
 
 MemoryBlock *findBlock(size_t size);
 
+// Tracking the start and end (the top) of the heap
+// static MemoryBlock *heapStart;
+static MemoryBlock *top;
+MemoryBlock *srchStart; // Need to declate srchStart here extern in the header
+
 __attribute__((constructor)) static void initiazePtrs() {
+  heapStart = NULL;
   top = heapStart;
   srchStart = heapStart; // Initialize ptrs in a constructor
 }
@@ -77,9 +83,10 @@ word_t *ealloc(size_t size) {
   block->size = size;
   block->used = true;
 
-  // Init heap
+  // Init heap and search pointers
   if (heapStart == NULL) {
     heapStart = block;
+    srchStart = block;
   }
 
   // Chain the blocks
@@ -121,19 +128,21 @@ MemoryBlock *nextFitSearch(size_t size) {
 
   MemoryBlock *block = srchStart;
 
-  while (block != NULL && block != top) {
-    printf("hiiiiiiii %d\n", block->size);
+  while (block != top) {
     if (block->used || block->size < size) {
       block = block->next;
       continue;
     }
 
-    srchStart = block->next;
+    srchStart = block;
     return block;
   }
 
+  // Check the last block
+  // TODO
+
   // No block found - wrap around
-  block = heapStart;
+  srchStart = heapStart;
 
   return NULL;
 }

@@ -40,13 +40,10 @@ enum SearchMode { FirstFit, NextFit };
 
 void init(enum SearchMode mode);
 
-// Tracking the start and end (the top) of the heap
-static MemoryBlock *heapStart = NULL;
-static MemoryBlock *top;
-
 /**
  * Previously found block. Updated in next fit.
  */
-static MemoryBlock *srchStart;
+static MemoryBlock *heapStart = NULL;
+extern MemoryBlock *srchStart;
 
 #endif
