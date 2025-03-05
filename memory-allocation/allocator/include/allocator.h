@@ -9,7 +9,6 @@
 typedef intptr_t word_t;
 
 typedef struct MemoryBlock MemoryBlock;
-
 // Linked list for blocks of memory
 struct MemoryBlock {
   // --------------------
@@ -33,5 +32,21 @@ size_t align(size_t n);
 size_t allocSize(size_t size);
 
 MemoryBlock *getHeader(word_t *data);
+
+/**
+ * Mode for searching a free block
+ */
+enum SearchMode { FirstFit, NextFit };
+
+void init(enum SearchMode mode);
+
+// Tracking the start and end (the top) of the heap
+static MemoryBlock *heapStart = NULL;
+static MemoryBlock *top;
+
+/**
+ * Previously found block. Updated in next fit.
+ */
+static MemoryBlock *srchStart;
 
 #endif

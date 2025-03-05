@@ -6,9 +6,40 @@
 
 MemoryBlock *findBlock(size_t size);
 
-// Tracking the start and end (the top) of the heap
-static MemoryBlock *heapStart = NULL;
-static MemoryBlock *top = NULL;
+__attribute__((constructor)) static void initiazePtrs() {
+  top = heapStart;
+  srchStart = heapStart; // Initialize ptrs in a constructor
+}
+
+/**
+ * Current search mode
+ */
+static enum SearchMode srchMode = FirstFit;
+
+/**
+ * Reset the heap to the original position
+ */
+void resetHeap() {
+  // Already reset
+  if (heapStart == NULL) {
+    return;
+  }
+
+  // Roll back to the begining
+  brk(heapStart);
+
+  heapStart = NULL;
+  top = NULL;
+  srchStart = NULL;
+}
+
+/**
+ * Initialize the heap, and search mode.
+ */
+void init(enum SearchMode mode) {
+  srchMode = mode;
+  resetHeap();
+}
 
 /**
  * Requests (maps) memory from OS.
@@ -61,9 +92,60 @@ word_t *ealloc(size_t size) {
   return block->data;
 }
 
+/**
+ * First-fit algorithm
+ * Returns the first free block which fits the size
+ */
+MemoryBlock *firstFitSearch(size_t size) {
+
+  MemoryBlock *block = heapStart;
+
+  while (block != NULL) {
+    if (block->used || block->size < size) {
+      block = block->next;
+      continue;
+    }
+
+    return block;
+  }
+
+  return NULL;
+}
+
+/**
+ * Next-fit algorithm
+ * Returns the next free block which fits the size.
+ * Updates the srchStart of success.
+ */
+MemoryBlock *nextFitSearch(size_t size) {
+
+  MemoryBlock *block = srchStart;
+
+  while (block != NULL && block != top) {
+    printf("hiiiiiiii %d\n", block->size);
+    if (block->used || block->size < size) {
+      block = block->next;
+      continue;
+    }
+
+    srchStart = block->next;
+    return block;
+  }
+
+  // No block found - wrap around
+  block = heapStart;
+
+  return NULL;
+}
+
 MemoryBlock *findBlock(size_t size) {
-  MemoryBlock *block = requestFromOS(size);
-  return block;
+
+  switch (srchMode) {
+  case FirstFit:
+    return firstFitSearch(size);
+  case NextFit:
+    return nextFitSearch(size);
+  }
 }
 
 /**
